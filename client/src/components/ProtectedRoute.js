@@ -21,49 +21,34 @@ const ProtectedRoute = ({ children }) => {
   const navigate = useNavigate();
 
   const navItems = [
+    { key: "home", label: "Home", icon: <HomeOutlined /> },
     {
-      label: "Home",
-      icon: <HomeOutlined />,
-    },
-    {
+      key: "user",
       label: `${user ? user.name : ""}`,
       icon: <UserOutlined />,
       children: [
-        {
-          label: (
-            <span
-              onClick={() => {
-                if (user.role === "admin") {
-                  navigate("/admin");
-                } else if (user.role === "partner") {
-                  navigate("/partner");
-                } else {
-                  navigate("/profile");
-                }
-              }}
-            >
-              My Profile
-            </span>
-          ),
-          icon: <ProfileOutlined />,
-        },
-        {
-          label: (
-            <Link
-              to="/login"
-              onClick={() => {
-                localStorage.removeItem("token");
-              }}
-            >
-              Log Out
-            </Link>
-          ),
-          icon: <LogoutOutlined />,
-        },
+        { key: "profile", label: "My Profile", icon: <ProfileOutlined /> },
+        { key: "logout", label: "Log Out", icon: <LogoutOutlined /> },
       ],
     },
   ];
 
+  const handleMenuClick = ({ key }) => {
+    if (key === "home") {
+      navigate("/");
+    } else if (key === "profile") {
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else if (user.role === "partner") {
+        navigate("/partner");
+      } else {
+        navigate("/profile");
+      }
+    } else if (key === "logout") {
+      localStorage.removeItem("token");
+      navigate("/login");
+    }
+  };
   const getValidUser = async () => {
     try {
       dispatch(showLoading());
@@ -103,7 +88,12 @@ const ProtectedRoute = ({ children }) => {
             <h3 className="demo-logo text-white m-0" style={{ color: "white" }}>
               Book My Show
             </h3>
-            <Menu theme="dark" mode="horizontal" items={navItems} />
+            <Menu
+              theme="dark"
+              mode="horizontal"
+              items={navItems}
+              onClick={handleMenuClick}
+            />
           </Header>
           <div style={{ padding: 24, minHeight: 380, background: "#fff" }}>
             {children}

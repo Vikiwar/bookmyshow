@@ -1,9 +1,23 @@
 const express = require("express");
+const path = require("path");
+const cors = require("cors");
 
 const app = express();
 
 require("dotenv").config();
 require("node:dns/promises").setServers(["1.1.1.1", "8.8.8.8"]);
+
+const clientBuildPath = path.join(__dirname, "../client/build");
+console.log(clientBuildPath);
+
+app.use(express.static(clientBuildPath));
+app.use(
+  cors({
+    origin: "*", // Allow only your frontend origin
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 const connectDB = require("./config/db");
 const userRouter = require("./routes/userRoutes");

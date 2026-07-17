@@ -35,6 +35,10 @@ app.use("/api/theatres", theatreRouter);
 app.use("/api/shows", showRouter);
 app.use("/api/bookings", bookingRouter);
 
+app.use((req, res) => {
+  res.sendFile(path.join(clientBuildPath, "index.html"));
+});
+
 app.listen(8082, () => {
   console.log("listening on port 8082");
 });

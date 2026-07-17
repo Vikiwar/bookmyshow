@@ -1,6 +1,7 @@
 const Booking = require("../models/bookingModel");
 const Show = require("../models/showModel");
 const stripe = require("stripe")(process.env.STRIPE_KEY);
+const EmailHelper = require("../utlis/emailHelper");
 
 const bookShow = async (req, res) => {
   try {
@@ -11,6 +12,39 @@ const bookShow = async (req, res) => {
     await Show.findByIdAndUpdate(req.body.show, {
       bookedSeats: updatedBookedSeats,
     });
+
+    const populatedBooking = await Booking.findById(newBooking._id)
+      .populate("user")
+      .populate("show")
+      .populate({
+        path: "show",
+        populate: {
+          path: "movie",
+          model: "Movies",
+        },
+      })
+      .populate({
+        path: "show",
+        populate: {
+          path: "theatre",
+          model: "Theatres",
+        },
+      });
+
+    await EmailHelper("ticket.html", populatedBooking.user.email, {
+      name: populatedBooking.user.name,
+      movie: populatedBooking.show.movie.title,
+      theatre: populatedBooking.show.theatre.name,
+      time: populatedBooking.show.time,
+      date: populatedBooking.show.date,
+      seats: populatedBooking.seats,
+      amount: parseInt(
+        populatedBooking.seats.length * populatedBooking.show.ticketPrice,
+      ),
+
+      transactionId: populatedBooking.transactionId,
+    });
+
     res.send({
       success: true,
       message: "New Booking done!",

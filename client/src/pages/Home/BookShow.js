@@ -110,7 +110,7 @@ const BookShow = () => {
       });
       if (response.success) {
         message.success(response.message);
-        navigate("/profile");
+        navigate("/mybookings");
       } else {
         message.error(response.message);
       }

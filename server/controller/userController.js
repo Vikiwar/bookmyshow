@@ -1,5 +1,11 @@
 const User = require("../models/userModel");
 const jwt = require("jsonwebtoken");
+const EmailHelper = require("../utlis/emailHelper");
+const bcrypt = require("bcrypt");
+
+const otpGenerator = function () {
+  return Math.floor(100000 + Math.random() * 900000);
+};
 
 const registerUser = async (req, res) => {
   try {
@@ -10,7 +16,12 @@ const registerUser = async (req, res) => {
         message: "User already exists",
       });
     }
-    const newUser = new User(req.body);
+    const saltRounds = 10; // the higher the number, the more secure but slower the hashing process
+    const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+    const newUser = new User({
+      ...req.body,
+      password: hashedPassword,
+    });
     await newUser.save();
     console.log("User registered successfully:", newUser);
     res.send({
@@ -32,8 +43,8 @@ const loginUser = async (req, res) => {
         message: "User does not exist. Please register.",
       });
     }
-
-    if (req.body.password !== user.password) {
+    const isMatch = await bcrypt.compare(req.body.password, user.password);
+    if (!isMatch) {
       return res.send({
         success: false,
         message: "Sorry, invalid password entered!",
@@ -67,4 +78,89 @@ const getCurrentUser = async (req, res) => {
   });
 };
 
-module.exports = { registerUser, loginUser, getCurrentUser };
+const forgetPassword = async (req, res) => {
+  try {
+    if (req.body.email == undefined) {
+      return res.status(401).json({
+        status: "failure",
+        message: "Please enter the email for forget Password",
+      });
+    }
+
+    let user = await User.findOne({ email: req.body.email });
+    if (user == null) {
+      return res.status(404).json({
+        status: "failure",
+        message: "user not found for this email",
+      });
+    }
+    const otp = otpGenerator();
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
+    // those updates will be send to the db
+    await user.save();
+    await EmailHelper("otp.html", user.email, {
+      name: user.name,
+      otp: otp,
+    });
+    res.status(200).json({
+      status: "success",
+      message: "otp sent to your email",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      status: "failure",
+    });
+  }
+};
+const resetPassword = async (req, res) => {
+  try {
+    let resetDetails = req.body;
+    // required fields are there or not
+    if (!resetDetails.password || !resetDetails.otp) {
+      return res.status(401).json({
+        status: "failure",
+        message: "invalid request",
+      });
+    }
+    // it will serach with the id -> user
+    const user = await User.findOne({ email: req.params.email });
+    // if user is not present
+    if (user == null) {
+      return res.status(404).json({
+        status: "failure",
+        message: "user not found",
+      });
+    }
+    // if otp is expired
+    if (Date.now() > user.otpExpiry) {
+      return res.status(401).json({
+        status: "failure",
+        message: "otp expired",
+      });
+    }
+    user.password = req.body.password;
+    // remove the otp from the user
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+    res.status(200).json({
+      status: "success",
+      message: "password reset successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      status: "failure",
+    });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getCurrentUser,
+  forgetPassword,
+  resetPassword,
+};

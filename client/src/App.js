@@ -11,6 +11,9 @@ import Profile from "./pages/User";
 import Partner from "./pages/Partner";
 import SingleMovie from "./pages/Home/SingleMovie";
 import BookShow from "./pages/Home/BookShow";
+import Forget from "./pages/User/ForgetPassword";
+import Reset from "./pages/User/ResetPassword";
+import Bookings from "./pages/User/Bookings";
 
 function App() {
   return (
@@ -65,6 +68,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <BookShow />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/forget" element={<Forget />} />
+            <Route path="/reset/:email" element={<Reset />} />
+            <Route
+              path="/mybookings"
+              element={
+                <ProtectedRoute>
+                  <Bookings />
                 </ProtectedRoute>
               }
             />

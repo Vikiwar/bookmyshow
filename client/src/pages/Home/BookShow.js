@@ -170,7 +170,7 @@ const BookShow = () => {
                   </h3>
                   <h3>
                     <span>Available Seats:</span>
-                    {(show.totalSeats = show.bookedSeats.length)}
+                    {show.totalSeats - show.bookedSeats.length}
                   </h3>
                 </div>
               }

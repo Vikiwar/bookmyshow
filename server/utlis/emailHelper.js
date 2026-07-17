@@ -1,12 +1,10 @@
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
 const fs = require("fs");
 const dotenv = require("dotenv");
 const path = require("path");
 dotenv.config();
 
-const { SENDGRID_API_KEY } = process.env;
-
-const transporter = nodemailer.createTransport({});
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 function replaceContent(content, creds) {
   let allkeysArr = Object.keys(creds);
@@ -16,31 +14,21 @@ function replaceContent(content, creds) {
   return content;
 }
 
-async function EmailHelper(templateName, reciverEmail, creds) {
-  // console.log(templateName, reciverEmail, creds)
+async function EmailHelper(templateName, receiverEmail, creds) {
   try {
     const templatePath = path.join(__dirname, "email_templates", templateName);
     let content = await fs.promises.readFile(templatePath, "utf-8");
-    const emailDetails = {
-      to: reciverEmail,
-      from: "vdazzler6@gmail.com", // Change to your verified sender
+    const msg = {
+      to: receiverEmail,
+      from: "vdazzler6@gmail.com", // must be a verified sender in SendGrid
       subject: "Mail from bookShows",
-      text: `Hi ${creds.name} this your reset otp ${creds.otp}`,
+      text: `Hi ${creds.name}, please see the details below.`,
       html: replaceContent(content, creds),
     };
-    const transportDetails = {
-      host: "smtp.sendgrid.net",
-      port: 587,
-      auth: {
-        user: "apikey",
-        pass: SENDGRID_API_KEY,
-      },
-    };
-    const transporter = nodemailer.createTransport(transportDetails);
-    await transporter.sendMail(emailDetails);
+    await sgMail.send(msg);
     console.log("email sent");
   } catch (err) {
-    console.log(err);
+    console.error(err.response?.body || err.message);
   }
 }
 

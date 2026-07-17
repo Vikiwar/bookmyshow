@@ -15,23 +15,23 @@ const bookShow = async (req, res) => {
 
     const populatedBooking = await Booking.findById(newBooking._id)
       .populate("user")
-      .populate("show")
       .populate({
         path: "show",
-        populate: {
-          path: "movie",
-          model: "Movies",
-        },
-      })
-      .populate({
-        path: "show",
-        populate: {
-          path: "theatre",
-          model: "Theatres",
-        },
+        populate: [
+          { path: "movie", model: "Movies" },
+          { path: "theatre", model: "Theatres" },
+        ],
       });
 
-    await EmailHelper("ticket.html", populatedBooking.user.email, {
+    // 1) respond immediately
+    res.send({
+      success: true,
+      message: "New Booking done!",
+      data: newBooking,
+    });
+
+    // 2) send email after — don't await, catch errors instead
+    EmailHelper("ticket.html", populatedBooking.user.email, {
       name: populatedBooking.user.name,
       movie: populatedBooking.show.movie.title,
       theatre: populatedBooking.show.theatre.name,
@@ -41,15 +41,8 @@ const bookShow = async (req, res) => {
       amount: parseInt(
         populatedBooking.seats.length * populatedBooking.show.ticketPrice,
       ),
-
       transactionId: populatedBooking.transactionId,
-    });
-
-    res.send({
-      success: true,
-      message: "New Booking done!",
-      data: newBooking,
-    });
+    }).catch((err) => console.error("Email sending failed:", err.message));
   } catch (error) {
     res.send({
       success: false,

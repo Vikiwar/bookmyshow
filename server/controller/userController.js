@@ -117,34 +117,41 @@ const forgetPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
   try {
     let resetDetails = req.body;
-    // required fields are there or not
     if (!resetDetails.password || !resetDetails.otp) {
       return res.status(401).json({
         status: "failure",
         message: "invalid request",
       });
     }
-    // it will serach with the id -> user
+
     const user = await User.findOne({ email: req.params.email });
-    // if user is not present
     if (user == null) {
       return res.status(404).json({
         status: "failure",
         message: "user not found",
       });
     }
-    // if otp is expired
+
+    if (String(user.otp) !== String(resetDetails.otp)) {
+      return res.status(401).json({
+        status: "failure",
+        message: "invalid otp",
+      });
+    }
+
     if (Date.now() > user.otpExpiry) {
       return res.status(401).json({
         status: "failure",
         message: "otp expired",
       });
     }
-    user.password = req.body.password;
-    // remove the otp from the user
+
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    user.password = hashedPassword;
     user.otp = undefined;
     user.otpExpiry = undefined;
     await user.save();
+
     res.status(200).json({
       status: "success",
       message: "password reset successfully",
